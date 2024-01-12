@@ -6,6 +6,7 @@ import numpy as np
 try:
     rm = pyvisa.ResourceManager()
     osci = rm.open_resource('USB0::0xF4EC::0xEE38::SDSMMEBQ4R4674::INSTR')
+    print('Connected to the oscilloscope')
 except:
     print('Error: No connection to the oscilloscope')
     sys.exit(0)

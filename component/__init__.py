@@ -1,1 +1,1 @@
-from . import manipulator, funGene
+from . import oscilloscope, funGene, manipulator
