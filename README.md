@@ -11,3 +11,6 @@ This is a repository for automatically motorizing 3-axis stage
 - Multifunction generator
 - Oscilloscope
 - Transducer
+
+## Data
+Save acoustic wave recorded at (x, y) as "x_y.csv", e.g. "01_05.csv". 
