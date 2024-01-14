@@ -12,9 +12,13 @@ except:
     sys.exit(0)
 
 def record(ch):
-    fs = osci.query('SARA?')
-    fs = fs[len('SARA '):-5]
-    fs = float(fs)
+    osci.timeout = None
+
+    # fs = osci.query('SARA?')
+    # print(fs)
+    # fs = fs[len('SARA '):-5]
+    # fs = float(fs)
+    fs = 500e6  # in Hz
 
     vd = osci.query(f'C{ch}:VDIV?')
     vd = vd[len(f'C{ch}:VDIV '):-2]

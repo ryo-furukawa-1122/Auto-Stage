@@ -20,11 +20,12 @@ if not os.path.exists(f'data/csv'):
 FREQ = 500  # in kHz
 VPP = 2  # in V
 CH = 2  # channel
-TRIALS = 1
+TRIALS = 3
 XMAX = 6e3  # in um
 YMAX = 5e3  # in um
-RES = 0.2e3  # spatial resolution in um
+RES = 1e3  # spatial resolution in um
 POSITIONS = [(x, y, 0) for x in np.arange(0, 2*XMAX+RES, RES) for y in np.arange(0, YMAX+RES, RES)]
+NAME = [f'{x*1e-3:.1f}_{y*1e-3:.1f}' for x in np.arange(0, 2*XMAX+RES, RES) for y in np.arange(0, YMAX+RES, RES)]
 
 # Manipulator configs
 SERIAL_SETTINGS = {
@@ -41,7 +42,7 @@ Position = tuple[float, float, float]
 def main():
     # Prepare data array
     # data = np.zeros((TRIALS, int((XMAX/RES)*2), int(YMAX/RES)))
-    p_all = [0 for k in range(TRIALS)]
+    p_all = [[0] for k in range(TRIALS)]
 
     # Measurement
     try:
@@ -54,6 +55,7 @@ def main():
         component.funGene.setVolt(VPP)
         component.funGene.setWaveform()
 
+
         def goto(pos: Position, sleep_time: float = 0):
             """
             Move the manipulator to the specified position. Positions should be specified in micro-meters.
@@ -62,28 +64,28 @@ def main():
             print(f"Position set to {pos}.")
             time.sleep(sleep_time)
         
-        # test code
-        # goto((0, 0, 10000))
-        
-        n = 0.0  # x use with filename
-        m = 0.0  # y use with filename
+        n = 0
         for pos in POSITIONS:
             goto(pos)
+            time.sleep(1)
             for k in range(TRIALS):
                 # Record
                 print(f"Recording trial {k+1}/{TRIALS}...")
                 component.funGene.setOutputOn()
+                time.sleep(0.5)
+                component.oscilloscope.timeout = None  # Set timeout to infinite
                 data = component.oscilloscope.record(ch=2)
                 component.funGene.setOutputOff()
 
                 time.sleep(1)
                 p_all[k] = data[:, 1]
-            
-            t = data[:, 0]
+
+            p_all = np.array(p_all)
             p_mean = np.mean(p_all, axis=0)
 
-            p_arr = p_all[0, :]
+            t = data[:, 0]
             t = np.array(t)
+            p_arr = np.array(p_all[0])
             t_arr = t
             for k in range(TRIALS-1):
                 p_arr = np.append(p_arr, p_all[k+1, :])
@@ -97,28 +99,24 @@ def main():
             plt.gca().spines['top'].set_visible(False)
             plt.tick_params(labelbottom=False, labelleft=True, labelright=False, labeltop=False)
             for k in range(TRIALS):
-                plt.plot(t*1e6, p_all[k]*1e3, color='black', alpha=0.25)
+                plt.plot(t*1e6, p_all[k, :]*1e3, color='black', alpha=0.25)
 
             plt.subplot(212)
             plt.plot(t*1e6, p_mean*1e3, color='black')
             plt.title('Mean signal')
-            plt.legend()
             plt.ylabel('Voltage (mV)')
             plt.xlabel('Time (\u03bcs)')
             plt.gca().spines['right'].set_visible(False)
             plt.gca().spines['top'].set_visible(False)
 
             plt.subplots_adjust(hspace=0.4)
-            plt.legend().remove()
-            plt.savefig(f'data/{n}_{m}.png')
+            plt.savefig(f'data/Figure/{NAME[n]}.png')
             plt.close()
-
-            n += RES*1e3  # in mm
-            m += RES*1e3  # in mm
 
             #csv
             save_csv = np.c_[t_arr, p_arr]
-            np.savetxt(f'data/{n}_{m}.csv', save_csv, delimiter=',')
+            np.savetxt(f'data/csv/{NAME[n]}.csv', save_csv, delimiter=',')
+            n += 1
 
     except KeyboardInterrupt:
         print("KeyboardInterrupt")
@@ -135,6 +133,9 @@ def main():
 
         # Close the connection
         ser.close()
+
+        # Turn off the function generator
+        component.funGene.setOutputOff()
 
 if __name__ == "__main__":
     main()
